@@ -1,0 +1,397 @@
+{
+  "name": "Working Site Safety Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/upload-photos",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*https://lovable.dev/projects/863f40fd-7f01-44d9-bbfe-56ac2267f215"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -576,
+        -112
+      ],
+      "id": "2e65811d-9e15-432f-85d0-1d1076e52ac1",
+      "name": "Webhook",
+      "webhookId": "80c59454-7903-4b29-a2cb-b981f08900ce"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  message: $json.content.parts[0].text,\n  status: \"success\"\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        544,
+        -112
+      ],
+      "id": "4ed20dc1-1544-489d-94bf-b025f8daa2d1",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-lite"
+        },
+        "text": "=You are a construction safety inspector.\n\nAnalyze the image and return ONLY a single JSON object in this exact structure:\n\n{\n  \"total_workers\": 0,\n  \"without_helmet\": 0,\n  \"without_vest\": 0,\n  \"unsafe_ladders\": 0,\n  \"harness_issues\": 0,\n  \"safety_score\": 0,\n  \"analysis_summary\": \"your summary here\" \n ''image_url'': {{ $json.image_url }}\n}\n\nRules:\n- analysis_summary must ALWAYS be a string. and make it in 1 to 2 lines.\n- If the image is not related to construction, set all numbers to 0 and set analysis_summary to: \"This image is not related to construction.\"\n- DO NOT return markdown.\n- DO NOT use ```json fences.\n- DO NOT return text outside the JSON.\n- Return ONLY the JSON object, nothing else.",
+        "imageUrls": "={{ $json.image_url }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -112
+      ],
+      "id": "9c1a37ae-9a9e-4f72-b10e-0df1ee85bf38",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "JfM3ut1TKmi7E8io",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nlafzovbzfblqsevcjht.supabase.co/storage/v1/object/n8nbucket/N8NPhotos/{{ $binary.file.fileName }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sYWZ6b3ZiemZibHFzZXZjamh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMzA4OTYsImV4cCI6MjA3OTgwNjg5Nn0.Dp7RgtRS3cBERAxz7o643JxoNdkUn_EPS16YJgbH4VU"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sYWZ6b3ZiemZibHFzZXZjamh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMzA4OTYsImV4cCI6MjA3OTgwNjg5Nn0.Dp7RgtRS3cBERAxz7o643JxoNdkUn_EPS16YJgbH4VU"
+            },
+            {
+              "name": "x-upsert",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -128,
+        -112
+      ],
+      "id": "d0d34126-0bc5-4619-a835-0bcd5863465c",
+      "name": "Supabase Upload"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a737232a-8d2e-4b34-bfb3-5da97c9b3d32",
+              "name": "image_url",
+              "value": "=https://nlafzovbzfblqsevcjht.supabase.co/storage/v1/object/public/{{ $json.Key }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        96,
+        -112
+      ],
+      "id": "d2311edf-8551-4e19-a4b6-408a5d37cecc",
+      "name": "Extracting Image URL"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3b11ae6a-bb81-459d-80fa-3ebbd30e3cea",
+              "name": "filename",
+              "value": "={{ $binary.file.fileName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "selected",
+        "includeFields": "binary",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -352,
+        -112
+      ],
+      "id": "1d8289ac-fe10-4b10-b44a-d3e146c95bea",
+      "name": "Adding Binary Filename"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the raw text from the model return\nconst raw = $input.first().json.content.parts[0].text;\n\n// Remove the \"```json\" opening fence\nlet cleaned = raw.replace(/```json/g, \"\");\n\n// Remove the closing \"```\"\ncleaned = cleaned.replace(/```/g, \"\");\n\n// Trim\ncleaned = cleaned.trim();\n\n// Parse JSON\nconst data = JSON.parse(cleaned);\n\n// Return cleaned JSON so it's easy to map\nreturn [\n  { json: data }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -112
+      ],
+      "id": "50f09a86-38de-4eab-a7d7-3cbba292dce4",
+      "name": "Cleaning Output"
+    },
+    {
+      "parameters": {
+        "useCustomSchema": true,
+        "tableId": "Image Analysis",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "filename",
+              "fieldValue": "={{ $('Adding Binary Filename').item.json.filename }}"
+            },
+            {
+              "fieldId": "image_url",
+              "fieldValue": "={{ $('Extracting Image URL').item.json.image_url }}"
+            },
+            {
+              "fieldId": "total_workers",
+              "fieldValue": "={{ $json.total_workers }}"
+            },
+            {
+              "fieldId": "without_helmet",
+              "fieldValue": "={{ $json.without_helmet }}"
+            },
+            {
+              "fieldId": "without_vest",
+              "fieldValue": "={{ $json.without_vest }}"
+            },
+            {
+              "fieldId": "harness_issues",
+              "fieldValue": "={{ $json.harness_issues }}"
+            },
+            {
+              "fieldId": "unsafe_ladders",
+              "fieldValue": "={{ $json.unsafe_ladders }}"
+            },
+            {
+              "fieldId": "safety_score",
+              "fieldValue": "={{ $json.safety_score }}"
+            },
+            {
+              "fieldId": "analysis_summary",
+              "fieldValue": "={{ $json.analysis_summary }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        992,
+        -112
+      ],
+      "id": "be9a84a5-4bac-4f2f-bbbb-d8fdfc96e525",
+      "name": "Creating a row in Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "CnrM1Q8kZU7seiYm",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "daefd8df-56f6-4a18-bc97-b40e72c70c7f",
+              "leftValue": "={{ $json.safety_score }}",
+              "rightValue": 80,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        -112
+      ],
+      "id": "1a290217-ffe3-413e-bcd3-4890cd1419a3",
+      "name": "Condition on Safety Score"
+    },
+    {
+      "parameters": {
+        "sendTo": "zain.haq2004@gmail.com",
+        "subject": "Construction Site Safety Alert – Immediate Attention Required",
+        "message": "=Dear Concerned Supervisor,\n\nThis is to inform you that, based on the latest site image, which is processed through the Safety Analysis System, a safety alert has been generated. \nPlease review the details of the identified safety observations and violations below:  \n\nNumber of Workers on Site:{{ $('Creating a row in Supabase').item.json.total_workers }} \nHarness Violations: {{ $('Creating a row in Supabase').item.json.harness_issues }} \nHelmet Violations: {{ $('Creating a row in Supabase').item.json.without_helmet }} \nLadder Issues: {{ $('Creating a row in Supabase').item.json.unsafe_ladders }}\nDebris Detected:{{ $('Creating a row in Supabase').item.json.harness_issues }}\nFinal Safety Score: {{ $('Creating a row in Supabase').item.json.safety_score }}\nAnalysis Summary: {{ $('Creating a row in Supabase').item.json.analysis_summary }}\nLog Created On: {{ $('Creating a row in Supabase').item.json.created_at }}\n\nWe request that you review the above findings promptly and take the necessary corrective actions to ensure compliance with site safety standards.  \nThank you for your cooperation.  \nRegards, \nSafety Monitoring System",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1440,
+        -112
+      ],
+      "id": "0aabac91-23fa-403c-9987-39fb173b6414",
+      "name": "Send Email",
+      "webhookId": "ff7d6a97-45f4-4f34-96c2-cc6e8b6c525c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "b6zhih4wsMaJWeD1",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Adding Binary Filename",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Cleaning Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Upload": {
+      "main": [
+        [
+          {
+            "node": "Extracting Image URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extracting Image URL": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adding Binary Filename": {
+      "main": [
+        [
+          {
+            "node": "Supabase Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleaning Output": {
+      "main": [
+        [
+          {
+            "node": "Creating a row in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creating a row in Supabase": {
+      "main": [
+        [
+          {
+            "node": "Condition on Safety Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Condition on Safety Score": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "4bbcb913-722a-482f-af31-f02babc00370",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e8343f97b8551c0b6a2d30dc46881c17491c81ba875d064e4352bb79c617812"
+  },
+  "id": "FkxaYmxZ4eXkeg6F",
+  "tags": []
+}
